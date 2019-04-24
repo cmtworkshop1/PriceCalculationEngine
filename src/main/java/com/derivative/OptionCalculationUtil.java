@@ -12,39 +12,49 @@ import java.util.HashMap;
 
 public class OptionCalculationUtil {
 
-    private static final Jedis jedis = new Jedis("localhost");
+    private static Jedis jedis = null;
     private static SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
 
 
 
-    public static void writeToRedis (String opt, double cp, double pp) {
+    public static void writeToRedis (String opt, double cp) {
 
-        String d1 = jedis.hget(opt,"CallPrice");
-        String d2 = jedis.hget(opt,"PutPrice");
-        System.out.println("Old Call price : "+d1);
-        System.out.println("Old Old price : "+d2);
+        //String d1 = jedis.hget(opt,"CallPrice");
+        //String d2 = jedis.hget(opt,"PutPrice");
+        //System.out.println("Old Call price : "+d1);
+        //System.out.println("Old Old price : "+d2);
 
 
-        HashMap hmPrice = new HashMap();
-        hmPrice.put("CallPrice",Double.toString(cp));
-        hmPrice.put("PutPrice",Double.toString(pp));
-        jedis.hset(opt, hmPrice);
+        //HashMap hmPrice = new HashMap();
+        //hmPrice.put("CallPrice",Double.toString(cp));
+        //hmPrice.put("PutPrice",Double.toString(pp));
+        jedis.set(opt, Double.toString(cp));
 
 
         System.out.println("New Call price : "+cp);
-        System.out.println("New Put price : "+pp);
+       // System.out.println("New Put price : "+pp);
 
 
     }
 
     public static double getStockPrice (String symbol) {
 
-        String priceValue = jedis.hget(symbol,"price");
+        String priceValue = jedis.hget(symbol,"spot_price");
         if(priceValue == null){
             System.out.println("No price for this symbol :"+symbol);
             return 0.0;
         }
         return Double.valueOf(priceValue);
+    }
+
+    public static double getInterestRate () {
+
+        String interestRate = jedis.get("Interest_rate");
+        if(interestRate == null){
+            System.out.println("No Interest Rate ");
+            return 0.0;
+        }
+        return Double.valueOf(interestRate);
     }
 
     public static double getVolatility (String symbol) {
@@ -57,6 +67,15 @@ public class OptionCalculationUtil {
         return Double.valueOf(vol);
     }
 
+
+    public static void setJedis(String url ){
+
+        //new Jedis("localhost");
+
+        jedis = new Jedis (url );
+
+
+    }
 
     public static double getTimeToExpiry(String dateInString) {
 

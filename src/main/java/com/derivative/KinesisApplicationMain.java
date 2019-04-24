@@ -1,8 +1,12 @@
 package com.derivative;
 
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.UUID;
+import java.util.Properties;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -12,9 +16,11 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
 
 public class KinesisApplicationMain {
 
-    public static final String SAMPLE_APPLICATION_STREAM_NAME = "OptionList";
+    public static String SAMPLE_APPLICATION_STREAM_NAME = null;
+            //"OptionList";
 
-    private static final String SAMPLE_APPLICATION_NAME = "OptionApplication";
+    private static  String SAMPLE_APPLICATION_NAME = null;
+            //"OptionApplication";
 
     // Initial position in the stream when the application starts up for the first time.
     // Position can be one of LATEST (most recent data) or TRIM_HORIZON (oldest available data)
@@ -25,6 +31,8 @@ public class KinesisApplicationMain {
 
 
     private static void init() {
+
+        loadConfig();
         // Ensure the JVM will refresh the cached IP values of AWS resources (e.g. service endpoints).
         java.security.Security.setProperty("networkaddress.cache.ttl", "60");
 
@@ -42,6 +50,40 @@ public class KinesisApplicationMain {
                     + "Please make sure that your credentials file is at the correct "
                     + "location (~/.aws/credentials), and is in valid format.", e);
         }
+    }
+
+    private static void loadConfig(){
+
+        try {
+
+            InputStream input = KinesisApplicationMain.class.getClassLoader().
+                    getResourceAsStream("config.properties"); {
+
+                Properties prop = new Properties();
+
+                if (input == null) {
+                    System.out.println("Sorry, unable to find config.properties");
+                    return;
+                }
+
+                //load a properties file from class path, inside static method
+                prop.load(input);
+
+                //get the property value and print it out
+                OptionCalculationUtil.setJedis(prop.getProperty("jedis.url"));
+                SAMPLE_APPLICATION_NAME = prop.getProperty("kinesis.appName");
+                SAMPLE_APPLICATION_STREAM_NAME = prop.getProperty("kinesis.streamName");
+
+                System.exit(0);
+
+
+        }
+
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
     }
 
     public static void main(String[] args) throws Exception {

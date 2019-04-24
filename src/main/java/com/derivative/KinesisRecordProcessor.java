@@ -100,26 +100,26 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
 
             String symbol =  strArray[0];
-            double stockPrice = OptionCalculationUtil.getStockPrice(symbol);
+            /*double stockPrice = OptionCalculationUtil.getStockPrice(symbol);
             double volatility = OptionCalculationUtil.getVolatility(symbol);
             double timeToExpiry = OptionCalculationUtil.getTimeToExpiry(strArray[2]);
-            double strikePrice = Double.valueOf(strArray[1]);
+            double strikePrice = Double.valueOf(strArray[1]);*/
 
             double calculatedCallPrice = OptionCalculationEngine.calculate(true,
+                    OptionCalculationUtil.getStockPrice(symbol),
+                    Double.valueOf(strArray[1]),
+                    OptionCalculationUtil.getInterestRate(),
+                    OptionCalculationUtil.getTimeToExpiry(strArray[2]),
+                    OptionCalculationUtil.getVolatility(symbol));
+
+            /*double calculatedPutPrice = OptionCalculationEngine.calculate(false,
                     stockPrice,
                     strikePrice,
                     0.05,
                     timeToExpiry,
-                    volatility);
+                    volatility);*/
 
-            double calculatedPutPrice = OptionCalculationEngine.calculate(false,
-                    stockPrice,
-                    strikePrice,
-                    0.05,
-                    timeToExpiry,
-                    volatility);
-
-            OptionCalculationUtil.writeToRedis(str,calculatedCallPrice,calculatedPutPrice);
+            OptionCalculationUtil.writeToRedis(str,calculatedCallPrice);
 
         } catch (Exception e) {
             System.out.println("Exception in Kinesis application :"+ e.toString());
