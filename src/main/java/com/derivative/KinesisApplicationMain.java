@@ -1,5 +1,8 @@
 package com.derivative;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 
 import java.io.IOException;
@@ -13,6 +16,7 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorFactory;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
+import org.apache.http.client.CredentialsProvider;
 
 public class KinesisApplicationMain {
 
@@ -27,7 +31,8 @@ public class KinesisApplicationMain {
     private static final InitialPositionInStream SAMPLE_APPLICATION_INITIAL_POSITION_IN_STREAM =
             InitialPositionInStream.LATEST;
 
-    private static ProfileCredentialsProvider credentialsProvider;
+    //private static ProfileCredentialsProvider credentialsProvider;
+    private static ClasspathPropertiesFileCredentialsProvider credentialsProvider;
 
 
     private static void init() {
@@ -41,7 +46,19 @@ public class KinesisApplicationMain {
          * credential profile by reading from the credentials file located at
          * (~/.aws/credentials).
          */
-        credentialsProvider = new ProfileCredentialsProvider();
+       /* credentialsProvider = new ProfileCredentialsProvider();
+        try {
+            credentialsProvider.getCredentials().;
+            System.out.println("credential");
+        } catch (Exception e) {
+            throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
+                    + "Please make sure that your credentials file is at the correct "
+                    + "location (~/.aws/credentials), and is in valid format.", e);
+        }*/
+
+        credentialsProvider =
+                new ClasspathPropertiesFileCredentialsProvider();
+
         try {
             credentialsProvider.getCredentials();
             System.out.println("credential");
@@ -50,14 +67,16 @@ public class KinesisApplicationMain {
                     + "Please make sure that your credentials file is at the correct "
                     + "location (~/.aws/credentials), and is in valid format.", e);
         }
+
     }
 
-    private static void loadConfig(){
+    private static void loadConfig() {
 
         try {
 
             InputStream input = KinesisApplicationMain.class.getClassLoader().
-                    getResourceAsStream("config.properties"); {
+                    getResourceAsStream("config.properties");
+            {
 
                 Properties prop = new Properties();
 
@@ -74,17 +93,18 @@ public class KinesisApplicationMain {
                 SAMPLE_APPLICATION_NAME = prop.getProperty("kinesis.appName");
                 SAMPLE_APPLICATION_STREAM_NAME = prop.getProperty("kinesis.streamName");
 
-                System.exit(0);
 
 
-        }
 
+            }
 
         } catch (IOException ex) {
             ex.printStackTrace();
         }
 
     }
+
+
 
     public static void main(String[] args) throws Exception {
         init();
