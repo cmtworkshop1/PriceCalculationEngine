@@ -95,7 +95,7 @@ public class KinesisRecordProcessor implements IRecordProcessor {
         try {
 
             String str = new String (record.getData().array());
-            String strArray[] = str.split(":");
+            String strArray[] = str.split("~");
             System.out.println( strArray[0]+":"+strArray[1]+":"+strArray[2]);
 
 

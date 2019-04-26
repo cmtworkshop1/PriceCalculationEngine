@@ -3,6 +3,8 @@ package com.derivative;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 
 import java.io.IOException;
@@ -16,6 +18,7 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorFactory;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
+import com.amazonaws.services.s3.AmazonS3Client;
 import org.apache.http.client.CredentialsProvider;
 
 public class KinesisApplicationMain {
@@ -59,8 +62,13 @@ public class KinesisApplicationMain {
         credentialsProvider =
                 new ClasspathPropertiesFileCredentialsProvider();
 
+
+
         try {
-            credentialsProvider.getCredentials();
+            AWSCredentials credentials = credentialsProvider.getCredentials();
+
+
+
             System.out.println("credential");
         } catch (Exception e) {
             throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
@@ -109,6 +117,7 @@ public class KinesisApplicationMain {
     public static void main(String[] args) throws Exception {
         init();
 
+
         if (args.length == 1 && "delete-resources".equals(args[0])) {
             //deleteResources();
             return;
@@ -121,6 +130,7 @@ public class KinesisApplicationMain {
                         credentialsProvider,
                         workerId);
         kinesisClientLibConfiguration.withInitialPositionInStream(SAMPLE_APPLICATION_INITIAL_POSITION_IN_STREAM);
+        kinesisClientLibConfiguration.withRegionName(Regions.US_EAST_2.getName());
 
         IRecordProcessorFactory recordProcessorFactory = new KinesisRecordProcessorFactory();
         Worker worker = new Worker(recordProcessorFactory, kinesisClientLibConfiguration);

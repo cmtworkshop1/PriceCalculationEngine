@@ -3,6 +3,7 @@ package com.derivative;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -28,6 +29,7 @@ public class OptionCalculationUtil {
         //HashMap hmPrice = new HashMap();
         //hmPrice.put("CallPrice",Double.toString(cp));
         //hmPrice.put("PutPrice",Double.toString(pp));
+        jedis.select(2);
         jedis.set(opt, Double.toString(cp));
 
 
@@ -39,6 +41,7 @@ public class OptionCalculationUtil {
 
     public static double getStockPrice (String symbol) {
 
+        jedis.select(3);
         String priceValue = jedis.hget(symbol,"spot_price");
         if(priceValue == null){
             System.out.println("No price for this symbol :"+symbol);
@@ -49,6 +52,7 @@ public class OptionCalculationUtil {
 
     public static double getInterestRate () {
 
+        jedis.select(4);
         String interestRate = jedis.get("Interest_rate");
         if(interestRate == null){
             System.out.println("No Interest Rate ");
@@ -59,6 +63,7 @@ public class OptionCalculationUtil {
 
     public static double getVolatility (String symbol) {
 
+        jedis.select(3);
         String vol = jedis.hget(symbol,"vol");
         if(vol == null){
             System.out.println("No vol for this symbol :"+symbol);
@@ -72,7 +77,10 @@ public class OptionCalculationUtil {
 
         //new Jedis("localhost");
 
-        jedis = new Jedis (url );
+        jedis = new Jedis(url);
+
+
+
 
 
     }
