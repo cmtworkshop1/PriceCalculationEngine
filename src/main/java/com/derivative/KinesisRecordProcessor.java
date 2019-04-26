@@ -107,9 +107,9 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
             double calculatedCallPrice = OptionCalculationEngine.calculate(true,
                     OptionCalculationUtil.getStockPrice(symbol),
-                    Double.valueOf(strArray[1]),
+                    Double.valueOf(strArray[2]),
                     OptionCalculationUtil.getInterestRate(),
-                    OptionCalculationUtil.getTimeToExpiry(strArray[2]),
+                    OptionCalculationUtil.getTimeToExpiry(strArray[1]),
                     OptionCalculationUtil.getVolatility(symbol));
 
             /*double calculatedPutPrice = OptionCalculationEngine.calculate(false,
