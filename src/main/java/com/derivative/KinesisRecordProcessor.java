@@ -10,6 +10,9 @@ import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateExcep
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 public class KinesisRecordProcessor implements IRecordProcessor {
@@ -28,14 +31,14 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
 
     public void initialize(String shardId) {
-        LOG.info("Initializing record processor for shard: " + shardId);
+        LOG.info("Initializing record processor for shard  @@@@@: " + shardId);
         this.kinesisShardId = shardId;
 
     }
 
     public void processRecords(List<Record> records, IRecordProcessorCheckpointer checkpointer) {
 
-        LOG.info("Processing " + records.size() + " records from " + kinesisShardId);
+        System.out.println("Processing #############" + records.size() + " records from " + kinesisShardId);
 
         // Process records and perform all exception handling.
         processRecordsWithRetries(records);
@@ -54,6 +57,9 @@ public class KinesisRecordProcessor implements IRecordProcessor {
      * @param records Data records to be processed.
      */
     private void processRecordsWithRetries(List<Record> records) {
+
+
+
         for (Record record : records) {
 
             boolean processedSuccessfully = false;
@@ -63,7 +69,6 @@ public class KinesisRecordProcessor implements IRecordProcessor {
                     // Logic to process record goes here.
                     //
                     processSingleRecord(record);
-
                     processedSuccessfully = true;
                     break;
                 } catch (Throwable t) {
@@ -82,7 +87,13 @@ public class KinesisRecordProcessor implements IRecordProcessor {
                 LOG.error("Couldn't process record " + record + ". Skipping the record.");
             }
         }
+
+
+
     }
+
+
+
 
     /**
      * Process a single record.
@@ -90,39 +101,62 @@ public class KinesisRecordProcessor implements IRecordProcessor {
      * @param record The record to be processed.
      */
     private void processSingleRecord(Record record) {
+
+        ArrayList<String> priceDataList = new ArrayList<String>();
+        String strData = new String (record.getData().array());
+        String optionIdArray[] = strData.split("%");
+
+
+
+        String symbol = optionIdArray[0].split("~")[0];
+        double interestRate = OptionCalculationUtil.getInterestRate(symbol);
+        ArrayList<Double> priceVolList = OptionCalculationUtil.getStockPriceAndVol(symbol);
+
+        for (String optionId : optionIdArray){
+
+            calculation(optionId, priceDataList,interestRate,priceVolList.get(0),priceVolList.get(1));
+
+        }
+
+       OptionCalculationUtil.writeToRedis(priceDataList);
+
+
+    }
+
+    /**
+     * Process a single record.
+     *
+     *
+     */
+    private void calculation(String optionId, ArrayList<String> priceDataList,double interestRate,
+                                     double spotPrice, double volatility) {
         // TODO Add your own record processing logic here
 
         try {
 
-            String str = new String (record.getData().array());
-            String strArray[] = str.split("~");
+            String strArray[] = optionId.split("~");
             System.out.println( strArray[0]+":"+strArray[1]+":"+strArray[2]);
-
-
-            String symbol =  strArray[0];
-            /*double stockPrice = OptionCalculationUtil.getStockPrice(symbol);
-            double volatility = OptionCalculationUtil.getVolatility(symbol);
-            double timeToExpiry = OptionCalculationUtil.getTimeToExpiry(strArray[2]);
-            double strikePrice = Double.valueOf(strArray[1]);*/
-
             double calculatedCallPrice = OptionCalculationEngine.calculate(true,
-                    OptionCalculationUtil.getStockPrice(symbol),
+                    spotPrice,
                     Double.valueOf(strArray[2]),
-                    OptionCalculationUtil.getInterestRate(),
+                    interestRate,
                     OptionCalculationUtil.getTimeToExpiry(strArray[1]),
-                    OptionCalculationUtil.getVolatility(symbol));
+                    volatility);
 
-            /*double calculatedPutPrice = OptionCalculationEngine.calculate(false,
-                    stockPrice,
-                    strikePrice,
-                    0.05,
-                    timeToExpiry,
-                    volatility);*/
 
-            OptionCalculationUtil.writeToRedis(str,calculatedCallPrice);
+            priceDataList.add(optionId);
+
+            BigDecimal bigDecimal = new BigDecimal(calculatedCallPrice);
+            double roundedPrice = bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+
+            priceDataList.add(Double.toString(roundedPrice));
+
+
 
         } catch (Exception e) {
             System.out.println("Exception in Kinesis application :"+ e.toString());
+            //e.printStackTrace();
+            //System.exit(1);
         }
     }
 

@@ -4,7 +4,9 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 
 import java.io.IOException;
@@ -20,6 +22,8 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibC
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
 import com.amazonaws.services.s3.AmazonS3Client;
 import org.apache.http.client.CredentialsProvider;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 public class KinesisApplicationMain {
 
@@ -44,20 +48,7 @@ public class KinesisApplicationMain {
         // Ensure the JVM will refresh the cached IP values of AWS resources (e.g. service endpoints).
         java.security.Security.setProperty("networkaddress.cache.ttl", "60");
 
-        /*
-         * The ProfileCredentialsProvider will return your [default]
-         * credential profile by reading from the credentials file located at
-         * (~/.aws/credentials).
-         */
-       /* credentialsProvider = new ProfileCredentialsProvider();
-        try {
-            credentialsProvider.getCredentials().;
-            System.out.println("credential");
-        } catch (Exception e) {
-            throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
-                    + "Please make sure that your credentials file is at the correct "
-                    + "location (~/.aws/credentials), and is in valid format.", e);
-        }*/
+
 
         credentialsProvider =
                 new ClasspathPropertiesFileCredentialsProvider();
@@ -66,10 +57,7 @@ public class KinesisApplicationMain {
 
         try {
             AWSCredentials credentials = credentialsProvider.getCredentials();
-
-
-
-            System.out.println("credential");
+              System.out.println("credential loaded");
         } catch (Exception e) {
             throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
                     + "Please make sure that your credentials file is at the correct "
@@ -77,6 +65,9 @@ public class KinesisApplicationMain {
         }
 
     }
+
+
+
 
     private static void loadConfig() {
 
@@ -97,9 +88,11 @@ public class KinesisApplicationMain {
                 prop.load(input);
 
                 //get the property value and print it out
-                OptionCalculationUtil.setJedis(prop.getProperty("jedis.url"));
+                JedisConnectionsManager.init(prop.getProperty("jedis.url"));
                 SAMPLE_APPLICATION_NAME = prop.getProperty("kinesis.appName");
                 SAMPLE_APPLICATION_STREAM_NAME = prop.getProperty("kinesis.streamName");
+
+                System.out.println("Stream name "+SAMPLE_APPLICATION_STREAM_NAME);
 
 
 
@@ -129,10 +122,16 @@ public class KinesisApplicationMain {
                         SAMPLE_APPLICATION_STREAM_NAME,
                         credentialsProvider,
                         workerId);
-        kinesisClientLibConfiguration.withInitialPositionInStream(SAMPLE_APPLICATION_INITIAL_POSITION_IN_STREAM);
+       kinesisClientLibConfiguration.withInitialPositionInStream(SAMPLE_APPLICATION_INITIAL_POSITION_IN_STREAM);
         kinesisClientLibConfiguration.withRegionName(Regions.US_EAST_2.getName());
 
+
+
+
+
+
         IRecordProcessorFactory recordProcessorFactory = new KinesisRecordProcessorFactory();
+
         Worker worker = new Worker(recordProcessorFactory, kinesisClientLibConfiguration);
 
         System.out.printf("Running %s to process stream %s as worker %s...\n",
@@ -148,6 +147,7 @@ public class KinesisApplicationMain {
             t.printStackTrace();
             exitCode = 1;
         }
+        //OptionCalculationUtil.close();
         System.exit(exitCode);
     }
 

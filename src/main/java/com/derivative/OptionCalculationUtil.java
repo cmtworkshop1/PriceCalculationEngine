@@ -4,108 +4,125 @@ import org.joda.time.DateTime;
 import org.joda.time.Days;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
+
 
 public class OptionCalculationUtil {
 
-    private static Jedis jedis = null;
+
     private static SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+    private static DateTime dateNow = new DateTime(Calendar.getInstance().getTime());
+    private static JedisPool jedisPool = null;
 
 
 
-    public static void writeToRedis (String opt, double cp) {
-
-        //String d1 = jedis.hget(opt,"CallPrice");
-        //String d2 = jedis.hget(opt,"PutPrice");
-        //System.out.println("Old Call price : "+d1);
-        //System.out.println("Old Old price : "+d2);
+    public static void writeToRedis (ArrayList<String> priceDataList) {
 
 
-        //HashMap hmPrice = new HashMap();
-        //hmPrice.put("CallPrice",Double.toString(cp));
-        //hmPrice.put("PutPrice",Double.toString(pp));
-        jedis.select(2);
-        jedis.set(opt, Double.toString(cp));
-
-
-        System.out.println("New Call price : "+cp);
-       // System.out.println("New Put price : "+pp);
-
+        Jedis jedis = JedisConnectionsManager.getJedis(2);
+        jedis.mset(priceDataList.toArray(new String[]{}));
+        jedis.close();
 
     }
 
-    public static double getStockPrice (String symbol) {
+    public static ArrayList<Double> getStockPriceAndVol (String symbol) {
 
-        jedis.select(3);
+        double stockPrice = 0.0;
+        double volatility = 0.0;
+        Jedis jedis  = JedisConnectionsManager.getJedis(3);
         String priceValue = jedis.hget(symbol,"spot_price");
         if(priceValue == null){
             System.out.println("No price for this symbol :"+symbol);
-            return 0.0;
+            priceValue =  "0.0";
         }
-        return Double.valueOf(priceValue);
-    }
-
-    public static double getInterestRate () {
-
-        jedis.select(4);
-        String interestRate = jedis.get("Interest_rate");
-        if(interestRate == null){
-            System.out.println("No Interest Rate ");
-            return 0.0;
-        }
-        return Double.valueOf(interestRate);
-    }
-
-    public static double getVolatility (String symbol) {
-
-        jedis.select(3);
         String vol = jedis.hget(symbol,"vol");
         if(vol == null){
             System.out.println("No vol for this symbol :"+symbol);
-            return 0.0;
+            vol =  "0.0";
         }
-        return Double.valueOf(vol);
+        try{
+            stockPrice = Double.valueOf(priceValue);
+
+        }
+        catch(NumberFormatException n){
+            System.out.println("Bad value of Stock Price : "+ priceValue + " for symbol:"+symbol );
+            stockPrice = 0.0;
+        }
+
+        try{
+            volatility = Double.valueOf(vol);
+
+        }
+        catch(NumberFormatException n){
+            System.out.println("Bad value of Vol : "+ priceValue + " for symbol:"+symbol );
+            volatility = 0.0;
+        }
+
+        ArrayList<Double> priceVol = new ArrayList<Double>(2);
+        priceVol.add(stockPrice);
+        priceVol.add(volatility);
+
+        jedis.close();
+
+        return priceVol;
     }
 
+    public static double getInterestRate (String symbol) {
 
-    public static void setJedis(String url ){
+        double iRate = 0.0;
+        String interestRate = null;
+        try{
+            Jedis jedis = JedisConnectionsManager.getJedis(4);
+            interestRate =  jedis.hget(symbol, "interest_rate");
+            jedis.close();
+            if(interestRate == null){
+                System.out.println("No Interest Rate ");
+                return iRate;
+            }
 
-        //new Jedis("localhost");
-
-        jedis = new Jedis(url);
+            iRate = Double.valueOf(interestRate);
 
 
 
+        }
+        catch(NumberFormatException n){
+            System.out.println("Bad value of interestRate : "+ interestRate + " for symbol:"+symbol );
+            iRate = 0.0;
+        }
 
-
+        return iRate;
     }
+
 
     public static double getTimeToExpiry(String dateInString) {
 
         double timeToExpiry = 0.0;
         try {
+
+
             Date date1 = format.parse(dateInString);
             DateTime dt1 = new DateTime(date1);
 
 
-            Date date2 = Calendar.getInstance().getTime();
-            DateTime dt2 = new DateTime(date2);
-
-            int daysInt =  Days.daysBetween(dt2, dt1).getDays();
-            double days = (double)daysInt/365;
-            BigDecimal bigDecimal = new BigDecimal(days);
-            timeToExpiry = bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+            int daysInt =  Days.daysBetween(dateNow, dt1).getDays();
+            if(daysInt < 0)
+                return timeToExpiry;
+            timeToExpiry = (double)daysInt/365;
+           // BigDecimal bigDecimal = new BigDecimal(days);
+            //bigDecimal.
+            //timeToExpiry = bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
 
             System.out.println(timeToExpiry);
 
 
         } catch (Exception e) {
-            System.out.println(e.toString());
+            System.out.println("#################"+e.toString());
 
         }
 
