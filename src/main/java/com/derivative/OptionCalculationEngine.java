@@ -44,8 +44,8 @@ public class OptionCalculationEngine {
             blackScholesOptionPrice = k * Math.exp(-r * t) * cd2 - s * cd1;
         }
 
-        System.out.print("in BlackScholesFormula.callOption() result-[" + blackScholesOptionPrice + "] ");
-        System.out.println("  callOption-" + callOption + ", spot-" + s + ", strike-" + k + ", r-" + r + ", T-" + t + ", v-" + v);
+       // System.out.print("in BlackScholesFormula.callOption() result-[" + blackScholesOptionPrice + "] ");
+        //System.out.println("  callOption-" + callOption + ", spot-" + s + ", strike-" + k + ", r-" + r + ", T-" + t + ", v-" + v);
 
         return blackScholesOptionPrice;
     }

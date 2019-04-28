@@ -118,7 +118,7 @@ public class OptionCalculationUtil {
             //bigDecimal.
             //timeToExpiry = bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
 
-            System.out.println(timeToExpiry);
+            //System.out.println(timeToExpiry);
 
 
         } catch (Exception e) {

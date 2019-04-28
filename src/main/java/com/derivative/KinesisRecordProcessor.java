@@ -22,7 +22,7 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
     // Backoff and retry settings
     private static final long BACKOFF_TIME_IN_MILLIS = 3000L;
-    private static final int NUM_RETRIES = 10;
+    private static final int NUM_RETRIES = 2;
 
     // Checkpoint about once a minute
     private static final long CHECKPOINT_INTERVAL_MILLIS = 60000L;
@@ -39,9 +39,12 @@ public class KinesisRecordProcessor implements IRecordProcessor {
     public void processRecords(List<Record> records, IRecordProcessorCheckpointer checkpointer) {
 
         System.out.println("Processing #############" + records.size() + " records from " + kinesisShardId);
-
+        long startTime = System.nanoTime();
+        System.out.println("Start time"+startTime);
         // Process records and perform all exception handling.
         processRecordsWithRetries(records);
+        long timeTaken = System.nanoTime() - startTime;
+        System.out.println("End time:"+timeTaken+" for size"+records.size());
 
         // Checkpoint once every checkpoint interval.
         if (System.currentTimeMillis() > nextCheckpointTimeInMillis) {
@@ -104,15 +107,24 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
         ArrayList<String> priceDataList = new ArrayList<String>();
         String strData = new String (record.getData().array());
-        String optionIdArray[] = strData.split("%");
-
-
-
+        strData = strData.replaceAll("|","#");
+        String optionIdArray[] = strData.split("#");
+        System.out.println("The number of options ids per record : "+optionIdArray.length);
+        if(optionIdArray.length ==0){
+            return;
+        }
         String symbol = optionIdArray[0].split("~")[0];
+        if("".equals(symbol)){
+            return;
+        }
         double interestRate = OptionCalculationUtil.getInterestRate(symbol);
         ArrayList<Double> priceVolList = OptionCalculationUtil.getStockPriceAndVol(symbol);
 
         for (String optionId : optionIdArray){
+
+            if("".equals(optionId)){
+                return;
+            }
 
             calculation(optionId, priceDataList,interestRate,priceVolList.get(0),priceVolList.get(1));
 
@@ -135,7 +147,7 @@ public class KinesisRecordProcessor implements IRecordProcessor {
         try {
 
             String strArray[] = optionId.split("~");
-            System.out.println( strArray[0]+":"+strArray[1]+":"+strArray[2]);
+            //System.out.println( strArray[0]+":"+strArray[1]+":"+strArray[2]);
             double calculatedCallPrice = OptionCalculationEngine.calculate(true,
                     spotPrice,
                     Double.valueOf(strArray[2]),
@@ -145,11 +157,8 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
 
             priceDataList.add(optionId);
-
             BigDecimal bigDecimal = new BigDecimal(calculatedCallPrice);
-            double roundedPrice = bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-
-            priceDataList.add(Double.toString(roundedPrice));
+            priceDataList.add(bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString());
 
 
 
