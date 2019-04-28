@@ -1,5 +1,6 @@
 package com.derivative;
 
+import com.amazonaws.services.dynamodbv2.xspec.S;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ThrottlingException;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessor;
@@ -107,9 +108,13 @@ public class KinesisRecordProcessor implements IRecordProcessor {
 
         ArrayList<String> priceDataList = new ArrayList<String>();
         String strData = new String (record.getData().array());
-        strData = strData.replaceAll("|","#");
+        //System.out.println("Option string : "+strData);
+        //strData = strData.replaceAll("|","#");
         String optionIdArray[] = strData.split("#");
-        System.out.println("The number of options ids per record : "+optionIdArray.length);
+        //System.out.println("The number of options ids per record : "+optionIdArray.length);
+
+
+
         if(optionIdArray.length ==0){
             return;
         }
@@ -125,6 +130,8 @@ public class KinesisRecordProcessor implements IRecordProcessor {
             if("".equals(optionId)){
                 return;
             }
+
+            //System.out.println(optionId);
 
             calculation(optionId, priceDataList,interestRate,priceVolList.get(0),priceVolList.get(1));
 
